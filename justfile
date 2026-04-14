@@ -1,3 +1,7 @@
+setup:
+    #!/usr/bin/env bash
+    ln -s build/compile_commands.json .
+
 build:
     #!/usr/bin/env bash
     cmake -B build -S .
