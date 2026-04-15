@@ -10,4 +10,7 @@ std::unique_ptr<ExprAST> LogError(std::string& Str);
 //
 std::unique_ptr<PrototypeAST> LogErrorP(std::string& Str);
 
+//
+Value *LogErrorV(std::string& Str);
+
 #endif

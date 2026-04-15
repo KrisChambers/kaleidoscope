@@ -3,9 +3,11 @@
 // #include "llvm/Support/raw_ostream.h"
 #include <cctype>
 #include <cstdlib>
+#include "llvm/IR/IRBuilder.h"
 #include <map>
-#include "lexer.hpp"
+#include <memory>
 #include "parser.hpp"
+
 
 
 int main() {
@@ -16,6 +18,8 @@ int main() {
 
   fprintf(stdout, "ready> ");
   nextToken();
+
+  InitializeModule();
 
   Parse();
 

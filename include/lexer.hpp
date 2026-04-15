@@ -3,8 +3,8 @@
 
 #include <string>
 
-static std::string IdentifierStr;
-static double NumVal;
+extern std::string IdentifierStr;
+extern double NumVal;
 
 enum TokenType {
   EOF_TOKEN = -1,
@@ -12,6 +12,14 @@ enum TokenType {
   EXTERN = -3,
   IDENTIFIER = -4,
   NUMBER = -5,
+  OTHER = -6
+};
+
+struct Token {
+    TokenType tok_type;
+    char symbol;
+    std::string IdentifierStr;
+    double NumVal;
 };
 
 

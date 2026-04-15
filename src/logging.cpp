@@ -11,3 +11,7 @@ std::unique_ptr<PrototypeAST> LogErrorP(std::string &Str) {
   return nullptr;
 }
 
+Value *LogErrorV(std::string &Str) {
+    LogError(Str);
+    return nullptr;
+}

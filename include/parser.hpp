@@ -7,7 +7,7 @@
 #include <map>
 #include <memory>
 
-static std::map<char, int> BinopPrecedense;
+extern std::map<char, int> BinopPrecedense;
 int GetTokPrecedence();
 
 static int CurTok;

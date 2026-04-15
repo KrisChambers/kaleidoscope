@@ -1,14 +1,7 @@
 #include "parser.hpp"
 #include "lexer.hpp"
 #include "logging.hpp"
-
-int nextToken() { return CurTok = gettok(); };
-
-std::unique_ptr<ExprAST> ParseNumberExpr() {
-  auto Result = std::make_unique<NumberExprAST>(NumVal);
-  nextToken();
-  return std::move(Result);
-}
+#include <map>
 
 std::string FormatToken(int token) {
   switch (token) {
@@ -22,6 +15,15 @@ std::string FormatToken(int token) {
     return std::to_string(static_cast<char>(token)).data();
   }
 }
+
+int nextToken() { return CurTok = gettok(); };
+
+std::unique_ptr<ExprAST> ParseNumberExpr() {
+  auto Result = std::make_unique<NumberExprAST>(NumVal);
+  nextToken();
+  return std::move(Result);
+}
+
 
 std::unique_ptr<ExprAST> ParseParenExpr() {
   nextToken(); // skip (
@@ -75,7 +77,8 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 std::unique_ptr<ExprAST> ParsePrimary() {
   switch (CurTok) {
   default: {
-    std::string msg = "unknown token "  + FormatToken(CurTok) + " : expected an expression";
+    std::string msg =
+        "unknown token " + FormatToken(CurTok) + " : expected an expression";
     return LogError(msg);
   }
   case IDENTIFIER:
@@ -106,6 +109,8 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
       return LHS;
 
     int BinOp = CurTok;
+    nextToken();
+
     auto RHS = ParsePrimary();
     if (!RHS)
       return nullptr;
@@ -188,32 +193,55 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
 ///
 
 void HandleDefinition() {
-  if (ParseDefinition()) {
-    fprintf(stderr, "Parsed a function definition.\n");
+  if (auto Ast = ParseDefinition()) {
+    if (auto *IR = Ast->codegen()) {
+      fprintf(stderr, "Parsed a function definition.\n");
+      IR->print(errs());
+      fprintf(stderr, "\n");
+      IR->eraseFromParent();
+    }
   } else {
     nextToken();
   }
 }
 
 void HandleTopLevelExpression() {
-  if (ParseTopLevelExpr()) {
-    fprintf(stderr, "Parsed a top-level expr.\n");
+  if (auto Ast = ParseTopLevelExpr()) {
+    if (auto *IR = Ast->codegen()) {
+      fprintf(stderr, "Parsed a top-level expr.\n");
+      IR->print(errs());
+      fprintf(stderr, "\n");
+      IR->eraseFromParent();
+    }
   } else {
     nextToken();
   }
 }
 
 void HandleExtern() {
-  if (ParseExtern()) {
-    fprintf(stderr, "Parsed a top-level expr.\n");
+  if (auto Ast = ParseExtern()) {
+    if (auto *IR = Ast->codegen()) {
+      fprintf(stderr, "Parsed a top-level expr.\n");
+      IR->print(errs());
+      fprintf(stderr, "\n");
+      IR->eraseFromParent();
+    }
   } else {
     nextToken();
   }
 }
 
+
+std::map<char, int> BinopPrecedense = {};
+
 void Parse() {
+  BinopPrecedense['<'] = 10;
+  BinopPrecedense['+'] = 20;
+  BinopPrecedense['-'] = 20;
+  BinopPrecedense['*'] = 40;
+
   while (true) {
-    //fprintf(stdout, "ready> ");
+    // fprintf(stdout, "ready> ");
     switch (CurTok) {
     case EOF_TOKEN:
       return;
