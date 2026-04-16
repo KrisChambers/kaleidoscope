@@ -1,7 +1,22 @@
 #include "parser.hpp"
+#include "codegen.hpp"
 #include "lexer.hpp"
 #include "logging.hpp"
 #include <map>
+#include <memory>
+
+static std::unique_ptr<IRCodegen> TheCodegen;
+
+void InitializeModule(void) {
+  auto Context = std::make_unique<LLVMContext>();
+  auto TheModule = std::make_unique<Module>("jitty", *Context);
+  auto Builder = std::make_unique<IRBuilder<>>(*Context);
+  std::map<std::string, Value *> NamedValues = {};
+
+  TheCodegen =
+      std::make_unique<IRCodegen>(std::move(Context), std::move(Builder),
+                                  std::move(TheModule), NamedValues);
+}
 
 std::string FormatToken(int token) {
   switch (token) {
@@ -23,7 +38,6 @@ std::unique_ptr<ExprAST> ParseNumberExpr() {
   nextToken();
   return std::move(Result);
 }
-
 
 std::unique_ptr<ExprAST> ParseParenExpr() {
   nextToken(); // skip (
@@ -194,7 +208,7 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
 
 void HandleDefinition() {
   if (auto Ast = ParseDefinition()) {
-    if (auto *IR = Ast->codegen()) {
+    if (auto *IR = TheCodegen->visit(*Ast.get())) {
       fprintf(stderr, "Parsed a function definition.\n");
       IR->print(errs());
       fprintf(stderr, "\n");
@@ -207,7 +221,7 @@ void HandleDefinition() {
 
 void HandleTopLevelExpression() {
   if (auto Ast = ParseTopLevelExpr()) {
-    if (auto *IR = Ast->codegen()) {
+    if (auto *IR = TheCodegen->visit(*Ast.get())) {
       fprintf(stderr, "Parsed a top-level expr.\n");
       IR->print(errs());
       fprintf(stderr, "\n");
@@ -220,7 +234,7 @@ void HandleTopLevelExpression() {
 
 void HandleExtern() {
   if (auto Ast = ParseExtern()) {
-    if (auto *IR = Ast->codegen()) {
+    if (auto *IR = TheCodegen->visit(*Ast.get())) {
       fprintf(stderr, "Parsed a top-level expr.\n");
       IR->print(errs());
       fprintf(stderr, "\n");
@@ -231,7 +245,6 @@ void HandleExtern() {
   }
 }
 
-
 std::map<char, int> BinopPrecedense = {};
 
 void Parse() {
@@ -241,7 +254,6 @@ void Parse() {
   BinopPrecedense['*'] = 40;
 
   while (true) {
-    // fprintf(stdout, "ready> ");
     switch (CurTok) {
     case EOF_TOKEN:
       return;

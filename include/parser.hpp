@@ -2,13 +2,16 @@
 #define PARSER_H
 
 #include "AST.hpp"
+#include "codegen.hpp"
 #include <cctype>
 #include <cstdlib>
 #include <map>
 #include <memory>
 
 extern std::map<char, int> BinopPrecedense;
+extern std::unique_ptr<IRCodegen> IRCodegenerator;
 int GetTokPrecedence();
+void InitializeModule();
 
 static int CurTok;
 std::unique_ptr<ExprAST> ParseExpression();
