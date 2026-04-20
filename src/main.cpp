@@ -2,13 +2,15 @@
 // #include "llvm/IR/Module.h"
 // #include "llvm/Support/raw_ostream.h"
 #include "parser.hpp"
-#include "llvm/IR/IRBuilder.h"
 #include <cctype>
 #include <cstdlib>
 #include <map>
-#include <memory>
+#include "llvm/Support/TargetSelect.h"
 
 int main() {
+  InitializeNativeTarget();
+  InitializeNativeTargetAsmPrinter();
+  InitializeNativeTargetAsmParser();
   BinopPrecedense['<'] = 10;
   BinopPrecedense['+'] = 20;
   BinopPrecedense['-'] = 20;
@@ -17,7 +19,8 @@ int main() {
   fprintf(stdout, "ready> ");
   nextToken();
 
-  InitializeModule();
+
+  InitializeModuleAndPassManagers();
 
   Parse();
 

@@ -17,6 +17,10 @@ include_directories(${LLVM_INCLUDE_DIRS} include src)
 # Create executable
 add_executable(kaleidoscope ${SOURCES})
 
-# Link LLVM libraries
-llvm_map_components_to_libnames(llvm_libs core)
-target_link_libraries(kaleidoscope ${llvm_libs})
+# Link LLVM libraries using llvm_config macro
+llvm_config(kaleidoscope USE_SHARED
+    core
+    orcjit orcshared orctargetprocess
+    executionengine jitlink object runtimedyld
+    passes support targetparser native
+)

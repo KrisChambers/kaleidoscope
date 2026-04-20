@@ -1,17 +1,86 @@
 #include "parser.hpp"
 #include "codegen.hpp"
+#include "kaleidoscopejit.hpp"
 #include "lexer.hpp"
 #include "logging.hpp"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/Reassociate.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <llvm-18/llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <map>
 #include <memory>
+#include <string>
+#include <vector>
+
+using namespace llvm;
+using namespace orc;
 
 static std::unique_ptr<IRCodegen> TheCodegen;
+static std::unique_ptr<KaleidoscopeJIT> TheJIT;
+static std::unique_ptr<LLVMContext> TheContext;
+static std::unique_ptr<Module> TheModule;
+static std::unique_ptr<IRBuilder<>> Builder;
+static std::map<std::string, Value *> NamedValues;
+static std::unique_ptr<FunctionPassManager> TheFPM;
+static std::unique_ptr<LoopAnalysisManager> TheLAM;
+static std::unique_ptr<FunctionAnalysisManager> TheFAM;
+static std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
+static std::unique_ptr<ModuleAnalysisManager> TheMAM;
+static std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
+static std::unique_ptr<StandardInstrumentations> TheSI;
+static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+static ExitOnError ExitOnErr;
 
-void InitializeModule(void) {
+static void TheInit() {
+}
+
+void InitializeModuleAndPassManagers(void) {
   auto Context = std::make_unique<LLVMContext>();
   auto TheModule = std::make_unique<Module>("jitty", *Context);
-  auto Builder = std::make_unique<IRBuilder<>>(*Context);
   std::map<std::string, Value *> NamedValues = {};
+  TheModule->setDataLayout(TheJIT->getDataLayout());
+
+  auto Builder = std::make_unique<IRBuilder<>>(*Context);
+
+  TheFPM = std::make_unique<FunctionPassManager>();
+  TheLAM = std::make_unique<LoopAnalysisManager>();
+  TheFAM = std::make_unique<FunctionAnalysisManager>();
+  TheCGAM = std::make_unique<CGSCCAnalysisManager>();
+  TheMAM = std::make_unique<ModuleAnalysisManager>();
+  ThePIC = std::make_unique<PassInstrumentationCallbacks>();
+  TheSI = std::make_unique<StandardInstrumentations>(*TheContext, true);
+
+  TheSI->registerCallbacks(*ThePIC, TheMAM.get());
+
+  TheFPM->addPass(InstCombinePass());
+  TheFPM->addPass(ReassociatePass());
+  TheFPM->addPass(GVNPass());
+  TheFPM->addPass(SimplifyCFGPass());
+
+  PassBuilder PB;
+  PB.registerModuleAnalyses(*TheMAM);
+  PB.registerFunctionAnalyses(*TheFAM);
+  PB.crossRegisterProxies(*TheLAM, *TheFAM, *TheCGAM, *TheMAM);
 
   TheCodegen =
       std::make_unique<IRCodegen>(std::move(Context), std::move(Builder),
@@ -207,11 +276,15 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
 ///
 
 void HandleDefinition() {
+  fprintf(stderr, "boop\n");
   if (auto Ast = ParseDefinition()) {
     if (auto *IR = TheCodegen->visit(*Ast.get())) {
       fprintf(stderr, "Parsed a function definition.\n");
       IR->print(errs());
       fprintf(stderr, "\n");
+
+      ExitOnErr(TheJIT->addModule(
+          ThreadSafeModule(TheCodegen->getModule(), TheCodegen->getContext())));
       IR->eraseFromParent();
     }
   } else {
@@ -222,6 +295,17 @@ void HandleDefinition() {
 void HandleTopLevelExpression() {
   if (auto Ast = ParseTopLevelExpr()) {
     if (auto *IR = TheCodegen->visit(*Ast.get())) {
+      auto RT = TheJIT->getMainJITDylib().createResourceTracker();
+      auto TSM =
+          ThreadSafeModule(TheCodegen->getModule(), TheCodegen->getContext());
+      ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
+      InitializeModuleAndPassManagers();
+
+      auto ExprSymbol = ExitOnErr(TheJIT->lookup("__anon_expr"));
+      auto Addr = ExprSymbol.getAddress();
+      double (*FP)() = reinterpret_cast<double (*)()>(Addr.getValue());
+      fprintf(stderr, "Evaluated to %f\n", FP());
+      ExitOnErr(RT->remove());
       fprintf(stderr, "Parsed a top-level expr.\n");
       IR->print(errs());
       fprintf(stderr, "\n");
@@ -244,14 +328,10 @@ void HandleExtern() {
     nextToken();
   }
 }
-
 std::map<char, int> BinopPrecedense = {};
 
 void Parse() {
-  BinopPrecedense['<'] = 10;
-  BinopPrecedense['+'] = 20;
-  BinopPrecedense['-'] = 20;
-  BinopPrecedense['*'] = 40;
+  TheJIT = ExitOnErr(KaleidoscopeJIT::Create());
 
   while (true) {
     switch (CurTok) {

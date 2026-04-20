@@ -29,6 +29,9 @@ public:
   Value *visit(const CallExprAST &expr);
   Function *visit(const PrototypeAST &expr);
   Function *visit(const FunctionAST &expr);
+
+  std::unique_ptr<Module> getModule() { return std::move(TheModule); };
+  std::unique_ptr<LLVMContext> getContext() { return std::move(Context); };
 };
 
 #endif

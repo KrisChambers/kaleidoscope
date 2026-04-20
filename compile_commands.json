@@ -1,1 +1,32 @@
-build/compile_commands.json
+[
+{
+  "directory": "/home/kris/personal/kaleidoscope",
+  "command": "/usr/bin/c++  -I/usr/lib/llvm-18/include -I/home/kris/personal/kaleidoscope/include -I/home/kris/personal/kaleidoscope/src -std=gnu++17   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/kaleidoscope.dir/src/codegen.cpp.o -c /home/kris/personal/kaleidoscope/src/codegen.cpp",
+  "file": "/home/kris/personal/kaleidoscope/src/codegen.cpp",
+  "output": "CMakeFiles/kaleidoscope.dir/src/codegen.cpp.o"
+},
+{
+  "directory": "/home/kris/personal/kaleidoscope",
+  "command": "/usr/bin/c++  -I/usr/lib/llvm-18/include -I/home/kris/personal/kaleidoscope/include -I/home/kris/personal/kaleidoscope/src -std=gnu++17   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/kaleidoscope.dir/src/lexer.cpp.o -c /home/kris/personal/kaleidoscope/src/lexer.cpp",
+  "file": "/home/kris/personal/kaleidoscope/src/lexer.cpp",
+  "output": "CMakeFiles/kaleidoscope.dir/src/lexer.cpp.o"
+},
+{
+  "directory": "/home/kris/personal/kaleidoscope",
+  "command": "/usr/bin/c++  -I/usr/lib/llvm-18/include -I/home/kris/personal/kaleidoscope/include -I/home/kris/personal/kaleidoscope/src -std=gnu++17   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/kaleidoscope.dir/src/logging.cpp.o -c /home/kris/personal/kaleidoscope/src/logging.cpp",
+  "file": "/home/kris/personal/kaleidoscope/src/logging.cpp",
+  "output": "CMakeFiles/kaleidoscope.dir/src/logging.cpp.o"
+},
+{
+  "directory": "/home/kris/personal/kaleidoscope",
+  "command": "/usr/bin/c++  -I/usr/lib/llvm-18/include -I/home/kris/personal/kaleidoscope/include -I/home/kris/personal/kaleidoscope/src -std=gnu++17   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/kaleidoscope.dir/src/main.cpp.o -c /home/kris/personal/kaleidoscope/src/main.cpp",
+  "file": "/home/kris/personal/kaleidoscope/src/main.cpp",
+  "output": "CMakeFiles/kaleidoscope.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/kris/personal/kaleidoscope",
+  "command": "/usr/bin/c++  -I/usr/lib/llvm-18/include -I/home/kris/personal/kaleidoscope/include -I/home/kris/personal/kaleidoscope/src -std=gnu++17   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/kaleidoscope.dir/src/parser.cpp.o -c /home/kris/personal/kaleidoscope/src/parser.cpp",
+  "file": "/home/kris/personal/kaleidoscope/src/parser.cpp",
+  "output": "CMakeFiles/kaleidoscope.dir/src/parser.cpp.o"
+}
+]
