@@ -1,55 +1,53 @@
 #include "lexer.hpp"
 #include <memory>
 
-
 std::string IdentifierStr = "";
 double NumVal = 0;
 
 static std::unique_ptr<Token> create_def() {
-    auto token = std::make_unique<Token>();
-    token->tok_type = DEF;
+  auto token = std::make_unique<Token>();
+  token->tok_type = DEF;
 
-    return token;
+  return token;
 }
 
 static std::unique_ptr<Token> create_eof() {
-    auto token = std::make_unique<Token>();
-    token->tok_type = EOF_TOKEN;
+  auto token = std::make_unique<Token>();
+  token->tok_type = EOF_TOKEN;
 
-    return token;
+  return token;
 }
 
 static std::unique_ptr<Token> create_extern() {
-    auto token = std::make_unique<Token>();
-    token->tok_type = EXTERN;
+  auto token = std::make_unique<Token>();
+  token->tok_type = EXTERN;
 
-    return token;
+  return token;
 }
 
 static std::unique_ptr<Token> create_ident(std::string Value) {
-    auto token = std::make_unique<Token>();
-    token->tok_type = IDENTIFIER;
-    token->IdentifierStr = Value;
+  auto token = std::make_unique<Token>();
+  token->tok_type = IDENTIFIER;
+  token->IdentifierStr = Value;
 
-    return token;
+  return token;
 }
 
 static std::unique_ptr<Token> create_number(double Value) {
-    auto token = std::make_unique<Token>();
-    token->tok_type = NUMBER;
-    token->NumVal = Value;
+  auto token = std::make_unique<Token>();
+  token->tok_type = NUMBER;
+  token->NumVal = Value;
 
-    return token;
+  return token;
 }
 
 static std::unique_ptr<Token> create_other(char Value) {
-    auto token = std::make_unique<Token>();
-    token->tok_type = OTHER;
-    token->symbol = Value;
+  auto token = std::make_unique<Token>();
+  token->tok_type = OTHER;
+  token->symbol = Value;
 
-    return token;
+  return token;
 }
-
 
 int gettok() {
   static int LastChar = ' ';
@@ -113,7 +111,7 @@ std::unique_ptr<Token> gettok2() {
     LastChar = getchar();
 
   if (isalpha(LastChar)) { // identifier
-    std::string IdStr = std::string {static_cast<char>(LastChar)};
+    std::string IdStr = std::string{static_cast<char>(LastChar)};
     while (isalnum((LastChar = getchar())))
       IdStr += LastChar;
 

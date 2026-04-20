@@ -19,7 +19,6 @@ class CallExprAST;
 class PrototypeAST;
 class FunctionAST;
 
-
 class Visitor {
 public:
   virtual ~Visitor() = default;
@@ -45,9 +44,7 @@ class NumberExprAST : public ExprAST {
 public:
   const double &getName() const { return Val; };
   NumberExprAST(double Val) : Val(Val) {}
-  Value *accept(Visitor &V) const override {
-        return V.visit(*this);
-  }
+  Value *accept(Visitor &V) const override { return V.visit(*this); }
 };
 
 class VariableExprAST : public ExprAST {
@@ -56,9 +53,7 @@ class VariableExprAST : public ExprAST {
 public:
   const std::string &getName() const { return Name; };
   VariableExprAST(const std::string &Name) : Name(Name) {}
-  Value *accept(Visitor &V) const override {
-        return V.visit(*this);
-  }
+  Value *accept(Visitor &V) const override { return V.visit(*this); }
 };
 
 class BinaryExprAST : public ExprAST {
@@ -73,9 +68,7 @@ public:
                 std::unique_ptr<ExprAST> RHS)
       : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
-  Value *accept(Visitor &V) const override {
-        return V.visit(*this);
-  }
+  Value *accept(Visitor &V) const override { return V.visit(*this); }
 };
 
 class CallExprAST : public ExprAST {
@@ -88,9 +81,7 @@ public:
   CallExprAST(const std::string &Callee,
               std::vector<std::unique_ptr<ExprAST>> Args)
       : Callee(Callee), Args(std::move(Args)) {}
-  Value *accept(Visitor &V) const override {
-        return V.visit(*this);
-  }
+  Value *accept(Visitor &V) const override { return V.visit(*this); }
 };
 
 // A function signature (type essentially)
@@ -103,9 +94,7 @@ public:
   const std::vector<std::string> &getArgs() const { return Args; };
   PrototypeAST(const std::string &Name, std::vector<std::string> Args)
       : Name(Name), Args(std::move(Args)) {};
-  Function *accept(Visitor &V) {
-        return V.visit(*this);
-  }
+  Function *accept(Visitor &V) { return V.visit(*this); }
 };
 
 // A function is the signature + it's body
@@ -120,9 +109,7 @@ public:
   FunctionAST(std::unique_ptr<PrototypeAST> Proto,
               std::unique_ptr<ExprAST> Body)
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
-  Function *accept(Visitor &V) {
-        return V.visit(*this);
-  }
+  Function *accept(Visitor &V) { return V.visit(*this); }
 };
 
 #endif

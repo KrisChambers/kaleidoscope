@@ -16,12 +16,11 @@ enum TokenType {
 };
 
 struct Token {
-    TokenType tok_type;
-    char symbol;
-    std::string IdentifierStr;
-    double NumVal;
+  TokenType tok_type;
+  char symbol;
+  std::string IdentifierStr;
+  double NumVal;
 };
-
 
 //
 int gettok();

@@ -1,14 +1,12 @@
 // #include "llvm/IR/LLVMContext.h"
 // #include "llvm/IR/Module.h"
 // #include "llvm/Support/raw_ostream.h"
+#include "parser.hpp"
+#include "llvm/IR/IRBuilder.h"
 #include <cctype>
 #include <cstdlib>
-#include "llvm/IR/IRBuilder.h"
 #include <map>
 #include <memory>
-#include "parser.hpp"
-
-
 
 int main() {
   BinopPrecedense['<'] = 10;
