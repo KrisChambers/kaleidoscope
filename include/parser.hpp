@@ -11,8 +11,9 @@
 extern std::map<char, int> BinopPrecedense;
 extern std::unique_ptr<IRCodegen> IRCodegenerator;
 int GetTokPrecedence();
-void InitializeModuleAndPassManagers();
-
+void InitializeManagers();
+void InitializeModule();
+void InitializeJIT();
 
 static int CurTok;
 std::unique_ptr<ExprAST> ParseExpression();

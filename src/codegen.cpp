@@ -1,5 +1,7 @@
 #include "codegen.hpp"
 #include "logging.hpp"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
 
 Value *IRCodegen::visit(const ExprAST &expr) { return expr.accept(*this); }
 
@@ -131,9 +133,20 @@ Function *IRCodegen::visit(const FunctionAST &expr) {
     Builder->CreateRet(RetVal);
     verifyFunction(*TheFunction);
 
+    TheFPM.run(*TheFunction, TheFAM);
+
     return TheFunction;
   }
 
   TheFunction->eraseFromParent();
   return nullptr;
+}
+
+void IRCodegen::reset() {
+  Context = std::make_unique<LLVMContext>();
+  TheModule = std::make_unique<Module>("jitty", *Context);
+  TheModule->setDataLayout(DL);
+  Builder = std::make_unique<IRBuilder<>>(*Context);
+  TheSI = std::make_unique<StandardInstrumentations>(*Context, true);
+  TheSI->registerCallbacks(*ThePIC, TheMAM.get());
 }

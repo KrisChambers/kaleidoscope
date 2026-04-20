@@ -1,11 +1,8 @@
-// #include "llvm/IR/LLVMContext.h"
-// #include "llvm/IR/Module.h"
-// #include "llvm/Support/raw_ostream.h"
 #include "parser.hpp"
+#include "llvm/Support/TargetSelect.h"
 #include <cctype>
 #include <cstdlib>
 #include <map>
-#include "llvm/Support/TargetSelect.h"
 
 int main() {
   InitializeNativeTarget();
@@ -19,8 +16,10 @@ int main() {
   fprintf(stdout, "ready> ");
   nextToken();
 
-
-  InitializeModuleAndPassManagers();
+  // Initialize JIT before module (needed for DataLayout)
+  InitializeJIT();
+  InitializeManagers(); // Create persistent pass managers
+  InitializeModule();   // Create first module
 
   Parse();
 

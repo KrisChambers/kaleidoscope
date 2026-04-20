@@ -24,5 +24,4 @@ struct Token {
 
 //
 int gettok();
-
 #endif
