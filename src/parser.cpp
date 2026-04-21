@@ -30,6 +30,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <typeinfo>
 
 using namespace llvm;
 using namespace orc;
@@ -109,6 +110,43 @@ std::unique_ptr<ExprAST> ParseNumberExpr() {
   return std::move(Result);
 }
 
+std::unique_ptr<ExprAST> ParseIfExpr() {
+  nextToken(); // consume the 'if' token
+
+  auto Cond = ParseExpression();
+  if (!Cond) {
+    std::string msg = "Could not parse conditional";
+    return LogError(msg);
+  }
+
+  if (CurTok != THEN) {
+    std::string msg = "Expected 'then' token but got " + FormatToken(CurTok);
+    return LogError(msg);
+  }
+  nextToken(); // Consume the 'then'
+
+  auto Then = ParseExpression();
+  if (!Then) {
+    std::string msg = "Could not parse true branch of if expression";
+    return LogError(msg);
+  }
+
+  if (CurTok != ELSE) {
+    std::string msg = "Expected 'else' token but got " + FormatToken(CurTok);
+    return LogError(msg);
+  }
+  nextToken(); // Consume the 'else'
+
+  auto Else = ParseExpression();
+  if (!Else) {
+    std::string msg = "Could not parse false branch of if expression";
+    return LogError(msg);
+  }
+
+  return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then),
+                                     std::move(Else));
+}
+
 std::unique_ptr<ExprAST> ParseParenExpr() {
   nextToken(); // skip (
 
@@ -169,6 +207,8 @@ std::unique_ptr<ExprAST> ParsePrimary() {
     return ParseIdentifierExpr();
   case NUMBER:
     return ParseNumberExpr();
+  case IF:
+    return ParseIfExpr();
   case '(':
     return ParseParenExpr();
   }

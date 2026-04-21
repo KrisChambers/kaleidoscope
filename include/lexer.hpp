@@ -12,7 +12,10 @@ enum TokenType {
   EXTERN = -3,
   IDENTIFIER = -4,
   NUMBER = -5,
-  OTHER = -6
+  OTHER = -6,
+  IF = -7,
+  THEN = -8,
+  ELSE = -9,
 };
 
 struct Token {

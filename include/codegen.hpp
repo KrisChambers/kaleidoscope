@@ -43,6 +43,7 @@ public:
   Value *visit(const VariableExprAST &expr);
   Value *visit(const BinaryExprAST &expr);
   Value *visit(const CallExprAST &expr);
+  Value *visit(const IfExprAST &expr);
   Function *visit(const PrototypeAST &expr);
   Function *visit(const FunctionAST &expr);
 
@@ -56,6 +57,9 @@ public:
   void addFunctionProto(std::string key, std::unique_ptr<PrototypeAST> ast) {
     FunctionProtos[key] = std::move(ast);
   };
+
+  Function* getFunction(std::string Name);
+
 };
 
 #endif

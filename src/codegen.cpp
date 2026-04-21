@@ -1,7 +1,20 @@
 #include "codegen.hpp"
+#include "AST.hpp"
 #include "logging.hpp"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
+#include <llvm-18/llvm/IR/Constants.h>
+
+Function *IRCodegen::getFunction(std::string Name) {
+  if (auto *F = TheModule->getFunction(Name))
+    return F;
+
+  auto FI = FunctionProtos.find(Name);
+  if (FI != FunctionProtos.end())
+    return visit(*FI->second);
+
+  return nullptr;
+}
 
 Value *IRCodegen::visit(const ExprAST &expr) { return expr.accept(*this); }
 
@@ -49,13 +62,13 @@ Value *IRCodegen::visit(const BinaryExprAST &expr) {
 
 Value *IRCodegen::visit(const CallExprAST &expr) {
   auto Callee = expr.getCallee();
-  const auto &Args = expr.getArgs();
-  // Find the function
-  Function *CalleeF = TheModule->getFunction(Callee);
+  auto CalleeF = getFunction(Callee);
+
   if (!CalleeF) {
-    auto msg = "Unknown function reference : " + Callee;
+    std::string msg = "Unknown function referenced " + Callee;
     return LogErrorV(msg);
   }
+  const auto &Args = expr.getArgs();
 
   // Check for arg list mismatch
   if (CalleeF->arg_size() != Args.size()) {
@@ -72,6 +85,61 @@ Value *IRCodegen::visit(const CallExprAST &expr) {
   }
 
   return Builder->CreateCall(CalleeF, ArgsV, "calltmp");
+}
+
+Value *IRCodegen::visit(const IfExprAST &expr) {
+  // Emit Condition
+  auto CondV = visit(*expr.getCond());
+
+  if (!CondV)
+    return nullptr;
+
+  // Everything is a double so our conditions are simply "is this larger than
+  // 0.0"
+  CondV = Builder->CreateFCmpONE(CondV, ConstantFP::get(*Context, APFloat(0.0)),
+                                 "ifcond");
+
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+
+  BasicBlock *ThenBB = BasicBlock::Create(*Context, "then", TheFunction);
+  BasicBlock *ElseBB = BasicBlock::Create(*Context, "else");
+  BasicBlock *MergeBB = BasicBlock::Create(*Context, "ifcont");
+
+  Builder->CreateCondBr(CondV, ThenBB, ElseBB);
+
+  // Emit Then
+  Builder->SetInsertPoint(ThenBB);
+
+  // This recursively visits expressions
+  Value *ThenV = visit(*expr.getThen());
+  if (!ThenV)
+    return nullptr;
+
+  Builder->CreateBr(MergeBB);
+  // generating IR for then can add more blocks, so we update ThenBB to the
+  // current block.
+  ThenBB = Builder->GetInsertBlock();
+
+  // Emit Else
+  TheFunction->insert(TheFunction->end(), ElseBB);
+  Builder->SetInsertPoint(ElseBB);
+
+  Value *ElseV = visit(*expr.getElse());
+  if (!ElseV)
+    return nullptr;
+
+  Builder->CreateBr(MergeBB);
+  // Same issue as above
+  ElseBB = Builder->GetInsertBlock();
+
+  // Emit the Merge block (PHI node)
+  TheFunction->insert(TheFunction->end(), MergeBB);
+  Builder->SetInsertPoint(MergeBB);
+  PHINode *phi = Builder->CreatePHI(Type::getDoubleTy(*Context), 2, "iftmp");
+
+  phi->addIncoming(ThenV, ThenBB);
+  phi->addIncoming(ElseV, ElseBB);
+  return phi;
 }
 
 Function *IRCodegen::visit(const PrototypeAST &expr) {
@@ -103,16 +171,12 @@ Function *IRCodegen::visit(const PrototypeAST &expr) {
 Function *IRCodegen::visit(const FunctionAST &expr) {
   auto Proto = expr.getProto();
   auto Body = expr.getBody();
-  // First we want to look through the symbol table and try to find an existing
-  // version.
-  Function *TheFunction = TheModule->getFunction(Proto->getName());
 
-  // If it doesn't exist we create one from the prototype
-  if (!TheFunction)
-    TheFunction = visit(*Proto);
+  FunctionProtos[Proto->getName()] = std::make_unique<PrototypeAST>(*Proto);
+  Function *TheFunction = getFunction(Proto->getName());
 
   if (!TheFunction)
-    return nullptr;
+    TheFunction = nullptr;
 
   // Want to make sure that it is empty.
   if (!TheFunction->empty()) {

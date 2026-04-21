@@ -18,6 +18,7 @@ class BinaryExprAST;
 class CallExprAST;
 class PrototypeAST;
 class FunctionAST;
+class IfExprAST;
 
 class Visitor {
 public:
@@ -27,6 +28,7 @@ public:
   virtual Value *visit(const VariableExprAST &expr) = 0;
   virtual Value *visit(const BinaryExprAST &expr) = 0;
   virtual Value *visit(const CallExprAST &expr) = 0;
+  virtual Value *visit(const IfExprAST &expr) = 0;
   virtual Function *visit(const PrototypeAST &expr) = 0;
   virtual Function *visit(const FunctionAST &expr) = 0;
 };
@@ -81,6 +83,20 @@ public:
   CallExprAST(const std::string &Callee,
               std::vector<std::unique_ptr<ExprAST>> Args)
       : Callee(Callee), Args(std::move(Args)) {}
+  Value *accept(Visitor &V) const override { return V.visit(*this); }
+};
+
+class IfExprAST : public ExprAST {
+  std::unique_ptr<ExprAST> Cond, Then, Else;
+
+public:
+  const ExprAST *getCond() const { return Cond.get(); };
+  const ExprAST *getThen() const { return Then.get(); };
+  const ExprAST *getElse() const { return Else.get(); };
+  IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
+            std::unique_ptr<ExprAST> Else)
+      : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+
   Value *accept(Visitor &V) const override { return V.visit(*this); }
 };
 
