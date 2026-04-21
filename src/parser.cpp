@@ -29,8 +29,8 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 #include <typeinfo>
+#include <vector>
 
 using namespace llvm;
 using namespace orc;
@@ -209,6 +209,8 @@ std::unique_ptr<ExprAST> ParsePrimary() {
     return ParseNumberExpr();
   case IF:
     return ParseIfExpr();
+  case FOR:
+    return ParseForExpr();
   case '(':
     return ParseParenExpr();
   }
@@ -249,6 +251,62 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
     LHS =
         std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
   }
+}
+
+std::unique_ptr<ExprAST> ParseForExpr() {
+  /*
+   * for i = 1, i < n, 1.0 in
+   */
+  nextToken(); // consume 'for' token
+
+  if (CurTok != IDENTIFIER) {
+    std::string msg = "Expected identifier after 'for'";
+    return LogError(msg);
+  }
+
+  std::string IdName = IdentifierStr;
+  nextToken(); // consume identifier
+
+  if (CurTok != '=') {
+    std::string msg = "Expected '=' after variable";
+    return LogError(msg);
+  }
+  nextToken(); // consume '='
+
+  auto Start = ParseExpression();
+  if (!Start)
+    return nullptr;
+  if (CurTok != ',') {
+    std::string msg = "Expected ',' after start value";
+    return LogError(msg);
+  }
+  nextToken(); // consume ','
+
+  auto End = ParseExpression();
+  if (!End)
+    return nullptr;
+
+  // Steps are optional
+  std::unique_ptr<ExprAST> Step;
+  if (CurTok == ',') {
+    nextToken();
+    Step = ParseExpression();
+    if (!Step)
+      return nullptr;
+  }
+
+  if (CurTok != IN) {
+    std::string msg = "Expected 'in' after for";
+    return LogError(msg);
+  }
+  nextToken(); // consume 'in'
+
+  auto Body = ParseExpression();
+  if (!Body)
+    return nullptr;
+
+  return std::make_unique<ForExprAST>(IdName, std::move(Start), std::move(End),
+                                      std::move(Step), std::move(Body));
 }
 
 std::unique_ptr<ExprAST> ParseExpression() {
@@ -359,7 +417,10 @@ void HandleExtern() {
       fprintf(stderr, "Parsed a top-level expr.\n");
       IR->print(errs());
       fprintf(stderr, "\n");
-      TheCodegen->addFunctionProto(Ast->getName(), std::move(Ast));
+
+      auto FunctionName = Ast->getName();
+
+      TheCodegen->addFunctionProto(FunctionName, std::move(Ast));
     }
   } else {
     nextToken();
@@ -367,6 +428,20 @@ void HandleExtern() {
 }
 
 std::map<char, int> BinopPrecedense = {};
+
+#define DLLEXPORT
+
+/// putchard - putchar that takes a double and returns 0.
+extern "C" DLLEXPORT double putchard(double X) {
+  fputc((char)X, stderr);
+  return 0;
+}
+
+/// printd - printf that takes a double prints it as "%f\n", returning 0.
+extern "C" DLLEXPORT double printd(double X) {
+  fprintf(stderr, "%f\n", X);
+  return 0;
+}
 
 void Parse() {
   while (true) {

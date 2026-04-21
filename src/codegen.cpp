@@ -4,6 +4,7 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
 #include <llvm-18/llvm/IR/Constants.h>
+#include <llvm-18/llvm/IR/Instructions.h>
 
 Function *IRCodegen::getFunction(std::string Name) {
   if (auto *F = TheModule->getFunction(Name))
@@ -58,6 +59,77 @@ Value *IRCodegen::visit(const BinaryExprAST &expr) {
     return LogErrorV(msg);
   }
   }
+}
+
+Value *IRCodegen::visit(const ForExprAST &expr) {
+    auto StartVal = visit(*expr.getStart());
+
+    if (!StartVal)
+        return nullptr;
+
+    // This sets up loop block that comes after a header block with an explicit branch into the loop block
+    Function* TheFunction = Builder->GetInsertBlock()->getParent();
+    BasicBlock* PreHeaderBB = Builder->GetInsertBlock();
+    BasicBlock* LoopBB = BasicBlock::Create(*Context, "loop", TheFunction);
+
+    Builder->CreateBr(LoopBB);
+
+    // Now we set everything to append instructions to the bottom of the (empty) LoopBB.
+    Builder->SetInsertPoint(LoopBB);
+
+    auto VarName = expr.getVarName();
+
+    // The phi node is setup and we append the start value coming from the preheader.
+    PHINode *Variable = Builder->CreatePHI(Type::getDoubleTy(*Context), 2, VarName);
+    Variable->addIncoming(StartVal, PreHeaderBB);
+
+    // inside the loop block the variable is assigned to the phi node.
+    // So we store the old value to restore it on exit.
+    Value *OldVal = NamedValues[VarName];
+    NamedValues[VarName] = Variable;
+
+    // Next we emit the body of the loop
+    if (!visit(*expr.getBody()))
+        return nullptr;
+
+    // Now we deal with computing the value of the loop variable.
+    // Remember: Step was optional
+    auto Step = expr.getStep();
+    Value* StepVal = nullptr;
+    if (Step) {
+        StepVal = visit(*Step);
+        if (!StepVal) return nullptr;
+    } else {
+        StepVal = ConstantFP::get(*Context, APFloat(1.0));
+    }
+
+    Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
+
+
+    // Next we emit the end condition of the loop similar to how we did it with if / else
+    Value* EndCond = visit(*expr.getEnd());
+    if (!EndCond) return nullptr;
+
+    EndCond = Builder->CreateFCmpONE(EndCond, ConstantFP::get(*Context, APFloat(0.0)), "loopcond");
+
+    // insert an "afterloop" block
+    BasicBlock *LoopEndBB = Builder->GetInsertBlock();
+    BasicBlock *AfterBB = BasicBlock::Create(*Context, "afterloop", TheFunction);
+
+    Builder->CreateCondBr(EndCond, LoopBB, AfterBB);
+    Builder->SetInsertPoint(AfterBB);
+
+    // Then we want to add a new entry to the PHI node for the 'nextvar' value.
+    // This is because phi nodes are values that represent junction points where control flow is possibly coming from.
+
+    Variable->addIncoming(NextVar, LoopEndBB);
+
+    if (OldVal)
+        NamedValues[VarName] = OldVal;
+    else
+        NamedValues.erase(VarName);
+
+    return Constant::getNullValue(Type::getDoubleTy(*Context));
 }
 
 Value *IRCodegen::visit(const CallExprAST &expr) {

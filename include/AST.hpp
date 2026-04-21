@@ -19,6 +19,7 @@ class CallExprAST;
 class PrototypeAST;
 class FunctionAST;
 class IfExprAST;
+class ForExprAST;
 
 class Visitor {
 public:
@@ -29,6 +30,7 @@ public:
   virtual Value *visit(const BinaryExprAST &expr) = 0;
   virtual Value *visit(const CallExprAST &expr) = 0;
   virtual Value *visit(const IfExprAST &expr) = 0;
+  virtual Value *visit(const ForExprAST &expr) = 0;
   virtual Function *visit(const PrototypeAST &expr) = 0;
   virtual Function *visit(const FunctionAST &expr) = 0;
 };
@@ -71,6 +73,26 @@ public:
       : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
   Value *accept(Visitor &V) const override { return V.visit(*this); }
+};
+
+class ForExprAST : public ExprAST {
+  std::string VarName;
+  std::unique_ptr<ExprAST> Start, End, Step, Body;
+
+public:
+  ForExprAST(const std::string &VarName, std::unique_ptr<ExprAST> Start,
+             std::unique_ptr<ExprAST> End, std::unique_ptr<ExprAST> Step,
+             std::unique_ptr<ExprAST> Body)
+      : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
+        Step(std::move(Step)), Body(std::move(Body)) {}
+
+  const ExprAST* getStart() const { return Start.get(); };
+  const ExprAST* getEnd() const { return Start.get(); };
+  const ExprAST* getStep() const { return Step.get(); };
+  const ExprAST* getBody() const { return Body.get(); };
+  const std::string &getVarName() const { return VarName; };
+
+  Value *accept(Visitor &V) const override { return V.visit(*this); };
 };
 
 class CallExprAST : public ExprAST {

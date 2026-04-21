@@ -16,6 +16,8 @@ enum TokenType {
   IF = -7,
   THEN = -8,
   ELSE = -9,
+  FOR = -10,
+  IN = -11,
 };
 
 struct Token {

@@ -44,6 +44,7 @@ public:
   Value *visit(const BinaryExprAST &expr);
   Value *visit(const CallExprAST &expr);
   Value *visit(const IfExprAST &expr);
+  Value *visit(const ForExprAST &expr);
   Function *visit(const PrototypeAST &expr);
   Function *visit(const FunctionAST &expr);
 
