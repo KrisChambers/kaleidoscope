@@ -55,15 +55,15 @@ void InitializeManagers(void) {
   TheMAM = std::make_unique<ModuleAnalysisManager>();
   ThePIC = std::make_unique<PassInstrumentationCallbacks>();
 
-  TheFPM->addPass(InstCombinePass());
-  TheFPM->addPass(ReassociatePass());
-  TheFPM->addPass(GVNPass());
-  TheFPM->addPass(SimplifyCFGPass());
+  // TheFPM->addPass(InstCombinePass());
+  // TheFPM->addPass(ReassociatePass());
+  // TheFPM->addPass(GVNPass());
+  // TheFPM->addPass(SimplifyCFGPass());
 
   PassBuilder PB;
   PB.registerModuleAnalyses(*TheMAM);
   PB.registerFunctionAnalyses(*TheFAM);
-  PB.crossRegisterProxies(*TheLAM, *TheFAM, *TheCGAM, *TheMAM);
+  // PB.crossRegisterProxies(*TheLAM, *TheFAM, *TheCGAM, *TheMAM);
 }
 
 void InitializeModule(void) {
@@ -305,8 +305,11 @@ std::unique_ptr<ExprAST> ParseForExpr() {
   if (!Body)
     return nullptr;
 
-  return std::make_unique<ForExprAST>(IdName, std::move(Start), std::move(End),
-                                      std::move(Step), std::move(Body));
+  auto Result =
+      std::make_unique<ForExprAST>(IdName, std::move(Start), std::move(End),
+                                   std::move(Step), std::move(Body));
+
+  return Result;
 }
 
 std::unique_ptr<ExprAST> ParseExpression() {
@@ -403,7 +406,7 @@ void HandleTopLevelExpression() {
       auto ExprSymbol = ExitOnErr(TheJIT->lookup("__anon_expr"));
       auto Addr = ExprSymbol.getAddress();
       double (*FP)() = reinterpret_cast<double (*)()>(Addr.getValue());
-      fprintf(stderr, "Evaluated to %f\n", FP());
+      fprintf(stderr, "\n\nEvaluated to %f\n", FP());
       ExitOnErr(RT->remove());
     }
   } else {

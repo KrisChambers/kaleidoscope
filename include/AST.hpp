@@ -40,6 +40,7 @@ class ExprAST {
 public:
   virtual ~ExprAST() = default;
   virtual Value *accept(Visitor &V) const = 0;
+  virtual std::string getTypeName() const = 0;
 };
 
 class NumberExprAST : public ExprAST {
@@ -49,6 +50,7 @@ public:
   const double &getName() const { return Val; };
   NumberExprAST(double Val) : Val(Val) {}
   Value *accept(Visitor &V) const override { return V.visit(*this); }
+  std::string getTypeName() const override { return "NumberExprAST";};
 };
 
 class VariableExprAST : public ExprAST {
@@ -58,6 +60,7 @@ public:
   const std::string &getName() const { return Name; };
   VariableExprAST(const std::string &Name) : Name(Name) {}
   Value *accept(Visitor &V) const override { return V.visit(*this); }
+  std::string getTypeName() const override { return "VariableExprAST";};
 };
 
 class BinaryExprAST : public ExprAST {
@@ -73,6 +76,7 @@ public:
       : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
   Value *accept(Visitor &V) const override { return V.visit(*this); }
+  std::string getTypeName() const override { return "BinaryExprAST";};
 };
 
 class ForExprAST : public ExprAST {
@@ -87,12 +91,13 @@ public:
         Step(std::move(Step)), Body(std::move(Body)) {}
 
   const ExprAST* getStart() const { return Start.get(); };
-  const ExprAST* getEnd() const { return Start.get(); };
+  const ExprAST* getEnd() const { return End.get(); };
   const ExprAST* getStep() const { return Step.get(); };
   const ExprAST* getBody() const { return Body.get(); };
   const std::string &getVarName() const { return VarName; };
 
   Value *accept(Visitor &V) const override { return V.visit(*this); };
+  std::string getTypeName() const override { return "ForExprAST";};
 };
 
 class CallExprAST : public ExprAST {
@@ -106,6 +111,7 @@ public:
               std::vector<std::unique_ptr<ExprAST>> Args)
       : Callee(Callee), Args(std::move(Args)) {}
   Value *accept(Visitor &V) const override { return V.visit(*this); }
+  std::string getTypeName() const override { return "CallExprAST";};
 };
 
 class IfExprAST : public ExprAST {
@@ -120,6 +126,7 @@ public:
       : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
 
   Value *accept(Visitor &V) const override { return V.visit(*this); }
+  std::string getTypeName() const override { return "IfExprAST";};
 };
 
 // A function signature (type essentially)
@@ -133,6 +140,7 @@ public:
   PrototypeAST(const std::string &Name, std::vector<std::string> Args)
       : Name(Name), Args(std::move(Args)) {};
   Function *accept(Visitor &V) { return V.visit(*this); }
+  std::string getTypeName() const { return "PrototypeAST";};
 };
 
 // A function is the signature + it's body
@@ -148,6 +156,7 @@ public:
               std::unique_ptr<ExprAST> Body)
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
   Function *accept(Visitor &V) { return V.visit(*this); }
+  std::string getTypeName() const { return "FunctionAST";};
 };
 
 #endif
